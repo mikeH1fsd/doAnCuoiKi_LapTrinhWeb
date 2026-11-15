@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+}
+
+enum CommentStatus {
+  ACTIVE
+  HIDDEN
+}
+
+model User {
+  id          Int        @id @default(autoincrement())
+  email       String     @unique
+  password    String
+  fullName    String
+  birthYear   Int?
+  address     String?
+  phoneNumber String?
+  avatar      String?
+  role        Role       @default(USER)
+  status      UserStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  posts    Post[]
+  comments Comment[]
+
+  @@index([role, status])
+  @@map("users")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts Post[]
+
+  @@map("categories")
+}
+
+model Post {
+  id         Int        @id @default(autoincrement())
+  title      String
+  slug       String     @unique
+  summary    String?
+  content    String     @db.Text
+  thumbnail  String?
+  status     PostStatus @default(PUBLISHED)
+  views      Int        @default(0)
+  authorId   Int
+  categoryId Int
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  author   User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  comments Comment[]
+
+  @@index([status, categoryId])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+model Comment {
+  id        Int           @id @default(autoincrement())
+  content   String        @db.Text
+  postId    Int
+  userId    Int
+  status    CommentStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, status])
+  @@map("comments")
+}
